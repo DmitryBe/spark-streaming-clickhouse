@@ -38,4 +38,5 @@ sync.sh
 
 logs/
 metastore_db/
+*.class
 *.log
