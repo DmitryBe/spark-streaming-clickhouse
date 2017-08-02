@@ -40,3 +40,6 @@ logs/
 metastore_db/
 *.class
 *.log
+
+spark-checkpoints/
+spark-warehouse/
