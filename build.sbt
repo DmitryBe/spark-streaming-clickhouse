@@ -25,3 +25,5 @@ libraryDependencies ++= scalaExt ++ spark ++ clickhouse
 // spark likes this version
 dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.6.5"
 dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.6.5"
+
+packAutoSettings
