@@ -1,6 +1,7 @@
 package io.clickhouse.ext.spark.streaming
 
 import io.clickhouse.ext.ClickHouseUtils
+import io.clickhouse.ext.tools.Retry
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{Encoders, SQLContext}
 import org.apache.spark.sql.sources.StreamSinkProvider
@@ -16,6 +17,26 @@ abstract class ClickHouseSinkProvider[T <: Product: ClassTag](implicit tag: Type
   def eventDateColumnName: String
   def indexColumns: Seq[String]
   def partitionFunc: (org.apache.spark.sql.Row) => java.sql.Date
+
+  def maxRetry: Int = 50
+  def ignoreThrowable: (Throwable) => Boolean = (ex: Throwable) => ex match {
+    case _: org.apache.http.NoHttpResponseException =>
+      log.error(ex.getMessage)
+      false
+    case _: org.apache.http.conn.HttpHostConnectException =>
+      log.error(ex.getMessage)
+      false
+    case rex: java.lang.RuntimeException =>
+      rex.getCause match {
+        case _: ru.yandex.clickhouse.except.ClickHouseException =>
+          log.error(rex.getMessage)
+          false // retry
+        case _ =>
+          log.error(rex.getMessage)
+          true
+      }
+    case _ => true
+  }
 
   override def createSink(
                            sqlContext: SQLContext,
@@ -34,7 +55,7 @@ abstract class ClickHouseSinkProvider[T <: Product: ClassTag](implicit tag: Type
       eventDateColumnName,
       indexColumns
     )
-    log.info("create new table sql:")
+    log.info("Create new table sql:")
     log.info(createTableSql)
 
     val connection = ClickHouseUtils.createConnection(getConnectionString())
@@ -46,7 +67,7 @@ abstract class ClickHouseSinkProvider[T <: Product: ClassTag](implicit tag: Type
     }
 
     log.info("Creating ClickHouse sink")
-    new ClickHouseSink[T](dbName, _tableName, eventDateColumnName)(getConnectionString)(partitionFunc)
+    new ClickHouseSink[T](dbName, _tableName, eventDateColumnName)(getConnectionString)(partitionFunc)(maxRetry, ignoreThrowable)
   }
 
   def getConnectionString(): (String, Int) = clickHouseServers.head

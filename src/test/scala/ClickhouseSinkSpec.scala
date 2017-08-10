@@ -87,7 +87,7 @@ class ClickhouseSinkSpec extends FlatSpec with Matchers {
 
     val query = stateStream.writeStream
       .outputMode("append")
-      .format("ClickHouseEventsSinkProvider") // clickhouse sink
+      .format("ClickHouseStateUpdatesSinkProvider") // clickhouse sink
 //      .format("console")
       .start()
 
